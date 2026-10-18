@@ -1,0 +1,1088 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#097b8f">
+  <title>Feria de Seguros | Sistema de Turnos</title>
+
+  <!-- Supabase JS v2 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    :root {
+      --primary: #097b8f;
+      --primary-dark: #075c6c;
+      --gold: #d0a862;
+      --gold-dark: #b78d48;
+      --bg: #f4f7f6;
+      --white: #ffffff;
+      --text: #24343a;
+      --muted: #718087;
+      --border: #e1e9e8;
+      --success: #218653;
+      --danger: #c34242;
+      --shadow: 0 8px 28px rgba(16, 58, 65, .08);
+      --radius: 12px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+    button:disabled { opacity: .55; cursor: not-allowed; }
+
+    .topbar {
+      background: var(--primary);
+      color: white;
+      padding: 18px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 3px 12px #003e4b18;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      border: 1px solid #ffffff55;
+      border-radius: 10px;
+      font-size: 23px;
+      font-weight: 800;
+    }
+
+    .brand h1 {
+      font-size: 17px;
+      margin: 0 0 3px;
+      letter-spacing: .5px;
+    }
+
+    .brand p {
+      font-size: 12px;
+      margin: 0;
+      opacity: .85;
+    }
+
+    .top-link {
+      color: white;
+      text-decoration: none;
+      border: 1px solid #ffffff66;
+      padding: 9px 13px;
+      border-radius: 8px;
+      font-size: 13px;
+    }
+
+    main {
+      width: min(1100px, 100%);
+      padding: 32px 20px 50px;
+      margin: auto;
+    }
+
+    .page-heading {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .eyebrow {
+      color: var(--primary);
+      text-transform: uppercase;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 2px;
+    }
+
+    .page-heading h2 {
+      margin: 10px 0;
+      font-size: clamp(25px, 4vw, 36px);
+      color: var(--primary-dark);
+    }
+
+    .page-heading p {
+      color: var(--muted);
+      margin: 0;
+      line-height: 1.6;
+    }
+
+    .card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 26px;
+      box-shadow: var(--shadow);
+    }
+
+    .client-card {
+      max-width: 570px;
+      margin: auto;
+    }
+
+    .field-label {
+      display: block;
+      margin: 0 0 9px;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    select, input {
+      width: 100%;
+      border: 1px solid #cfdcdb;
+      border-radius: 8px;
+      padding: 13px 14px;
+      color: var(--text);
+      background: white;
+      outline: none;
+    }
+
+    select:focus, input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px #097b8f18;
+    }
+
+    .field { margin-bottom: 22px; }
+
+    .btn {
+      width: 100%;
+      padding: 15px 18px;
+      border: 0;
+      border-radius: 9px;
+      font-weight: 800;
+      transition: transform .15s, background .15s;
+    }
+
+    .btn:not(:disabled):active { transform: scale(.99); }
+
+    .btn-gold {
+      background: var(--gold);
+      color: #253038;
+    }
+
+    .btn-gold:hover:not(:disabled) { background: var(--gold-dark); }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: var(--primary-dark);
+    }
+
+    .btn-secondary {
+      background: #eaf1f1;
+      color: var(--primary-dark);
+    }
+
+    .helper {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.6;
+      margin-top: 15px;
+      text-align: center;
+    }
+
+    .hidden { display: none !important; }
+
+    .ticket-result {
+      text-align: center;
+      margin-top: 24px;
+      padding: 26px 15px;
+      border: 1px solid #ead7b4;
+      border-radius: 12px;
+      background: #fffaf0;
+    }
+
+    .ticket-result .ticket-label {
+      color: #80642f;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 1px;
+    }
+
+    .ticket-code {
+      font-size: clamp(46px, 10vw, 72px);
+      font-weight: 900;
+      color: var(--primary);
+      margin: 12px 0;
+      overflow-wrap: anywhere;
+    }
+
+    .ticket-result p {
+      color: var(--muted);
+      margin: 8px 0 0;
+    }
+
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      color: var(--muted);
+      font-size: 13px;
+      margin: 0 0 20px;
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--success);
+      flex-shrink: 0;
+    }
+
+    .dot.offline { background: var(--danger); }
+
+    .advisor-layout {
+      max-width: 650px;
+      margin: auto;
+    }
+
+    .advisor-current {
+      background: #edf6f6;
+      border-radius: 10px;
+      padding: 20px;
+      text-align: center;
+      margin: 22px 0;
+    }
+
+    .advisor-current .ticket-code {
+      font-size: 48px;
+      margin: 8px 0;
+    }
+
+    .section-label {
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .alert {
+      padding: 13px 15px;
+      border-radius: 8px;
+      font-size: 14px;
+      line-height: 1.5;
+      margin: 16px 0;
+    }
+
+    .alert.error {
+      color: #922d2d;
+      background: #fff0f0;
+      border: 1px solid #f2d0d0;
+    }
+
+    .alert.info {
+      color: #155e69;
+      background: #eaf6f7;
+      border: 1px solid #cde8eb;
+    }
+
+    .alert.success {
+      color: #17643b;
+      background: #ecf8f0;
+      border: 1px solid #cdebd8;
+    }
+
+    .screen-main { max-width: 1500px; }
+
+    .screen-heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 18px;
+      flex-wrap: wrap;
+      margin-bottom: 26px;
+    }
+
+    .screen-heading h2 {
+      margin: 6px 0;
+      color: var(--primary-dark);
+      font-size: clamp(24px, 4vw, 34px);
+    }
+
+    .screen-heading p {
+      color: var(--muted);
+      margin: 0;
+    }
+
+    .screen-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 30px;
+      padding: 10px 14px;
+      font-size: 12px;
+    }
+
+    .screen-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 17px;
+    }
+
+    .counter-card {
+      position: relative;
+      overflow: hidden;
+      min-height: 230px;
+      padding: 22px 18px;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .counter-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 5px;
+      background: var(--primary);
+    }
+
+    .counter-number {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+
+    .counter-card h3 {
+      font-size: 16px;
+      margin: 12px 0 5px;
+      color: var(--primary-dark);
+    }
+
+    .counter-insurance {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .counter-ticket {
+      color: var(--gold);
+      font-size: clamp(30px, 3.2vw, 44px);
+      font-weight: 900;
+      margin-top: 24px;
+      overflow-wrap: anywhere;
+    }
+
+    .counter-placeholder {
+      color: #aab8b9;
+      font-size: 19px;
+      font-weight: 600;
+      margin-top: 28px;
+    }
+
+    .counter-state {
+      margin-top: auto;
+      padding-top: 12px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    footer {
+      text-align: center;
+      padding: 22px 15px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    @media (max-width: 950px) {
+      .screen-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 520px) {
+      .topbar { padding: 14px; }
+      .brand h1 { font-size: 14px; }
+      .brand-mark { width: 38px; height: 38px; }
+      .top-link { font-size: 11px; padding: 8px; }
+      main { padding: 25px 13px 35px; }
+      .card { padding: 20px 16px; }
+      .screen-grid { gap: 10px; }
+      .counter-card { padding: 18px 10px; min-height: 205px; }
+      .counter-card h3 { font-size: 14px; }
+      .counter-insurance { font-size: 12px; }
+      .counter-ticket { font-size: 29px; }
+      .counter-placeholder { font-size: 15px; }
+    }
+  </style>
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">S</div>
+      <div>
+        <h1>FERIA CORPORATIVA DE SEGUROS</h1>
+        <p>Sistema de gestión de turnos</p>
+      </div>
+    </div>
+
+    <a class="top-link" href="#asesor">Acceso asesores</a>
+  </header>
+
+  <main id="app"></main>
+
+  <footer>
+    Feria de Seguros · Atención organizada y en tiempo real
+  </footer>
+
+  <script>
+    "use strict";
+
+    // =====================================================
+    // CONFIGURACIÓN DE SUPABASE
+    // =====================================================
+    const SUPABASE_URL =
+      "https://wxkqmksukysajwnqkhhn.supabase.co";
+
+    const SUPABASE_ANON_KEY =
+      "sb_publishable_dWqEf88fb8BkN6G_mL911g_E2YOxIqp";
+
+    const db = window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_ANON_KEY
+    );
+
+    const app = document.getElementById("app");
+
+    const seguros = Array.from({ length: 8 }, (_, i) => ({
+      numero: i + 1,
+      nombre: `Seguro ${i + 1}`,
+      codigo: `S${i + 1}`
+    }));
+
+    const state = {
+      route: "",
+      asesorAutenticado: false,
+      seguroAsesor: 1,
+      turnoAsesor: null,
+      creandoTurno: false,
+      llamandoTurno: false,
+      canal: null,
+      screenOnline: false,
+      turnosActuales: {},
+      errorPantalla: ""
+    };
+
+    // =====================================================
+    // UTILIDADES
+    // =====================================================
+    function escapeHTML(value) {
+      return String(value ?? "").replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      })[char]);
+    }
+
+    function seguroPorNumero(numero) {
+      return seguros.find(s => s.numero === Number(numero));
+    }
+
+    function mostrarAlerta(mensaje, tipo = "info", contenedorId = "alertas") {
+      const container = document.getElementById(contenedorId);
+      if (!container) return;
+
+      container.innerHTML = `
+        <div class="alert ${tipo}" role="status">
+          ${escapeHTML(mensaje)}
+        </div>
+      `;
+    }
+
+    function limpiarAlerta(contenedorId = "alertas") {
+      const container = document.getElementById(contenedorId);
+      if (container) container.innerHTML = "";
+    }
+
+    function formatearError(error) {
+      console.error(error);
+
+      if (!navigator.onLine) {
+        return "No hay conexión a Internet. Comprueba tu conexión e inténtalo nuevamente.";
+      }
+
+      if (error?.code === "42501" || error?.code === "PGRST301") {
+        return "Supabase rechazó la operación por permisos. Revisa las políticas RLS.";
+      }
+
+      return error?.message || "Ocurrió un error inesperado. Inténtalo nuevamente.";
+    }
+
+    function obtenerNumeroCodigo(codigo) {
+      const match = String(codigo || "").match(/-(\d+)$/);
+      return match ? Number(match[1]) : 0;
+    }
+
+    // =====================================================
+    // NAVEGACIÓN POR HASH
+    // =====================================================
+    function obtenerRuta() {
+      const hash = window.location.hash.toLowerCase();
+
+      if (hash === "#asesor") return "asesor";
+      if (hash === "#pantalla") return "pantalla";
+      return "cliente";
+    }
+
+    function navegar() {
+      const ruta = obtenerRuta();
+
+      if (state.route === "pantalla" && ruta !== "pantalla") {
+        detenerCanal();
+      }
+
+      state.route = ruta;
+
+      if (ruta === "cliente") {
+        renderCliente();
+      } else if (ruta === "asesor") {
+        renderAsesor();
+      } else {
+        renderPantalla();
+      }
+    }
+
+    window.addEventListener("hashchange", navegar);
+
+    // =====================================================
+    // VISTA CLIENTE
+    // =====================================================
+    function renderCliente() {
+      app.className = "";
+
+      app.innerHTML = `
+        <section class="page-heading">
+          <div class="eyebrow">Bienvenido</div>
+          <h2>Tu tranquilidad comienza aquí</h2>
+          <p>Selecciona el seguro que deseas consultar y obtén tu turno.</p>
+        </section>
+
+        <section class="card client-card">
+          <div class="field">
+            <label class="field-label" for="seguroCliente">
+              ¿Qué seguro deseas consultar?
+            </label>
+
+            <select id="seguroCliente">
+              ${seguros.map(s => `
+                <option value="${s.numero}">
+                  ${s.nombre}
+                </option>
+              `).join("")}
+            </select>
+          </div>
+
+          <button class="btn btn-gold" id="btnObtenerTurno">
+            OBTENER MI TURNO
+          </button>
+
+          <div id="alertas" aria-live="polite"></div>
+          <div id="resultadoTurno"></div>
+
+          <p class="helper">
+            Conserva tu código y permanece atento a la pantalla
+            del auditorio cuando llegue tu turno.
+          </p>
+        </section>
+      `;
+
+      document.getElementById("btnObtenerTurno")
+        .addEventListener("click", obtenerTurno);
+    }
+
+    async function obtenerTurno() {
+      if (state.creandoTurno) return;
+
+      const boton = document.getElementById("btnObtenerTurno");
+      const seguroNumero = Number(
+        document.getElementById("seguroCliente").value
+      );
+
+      const seguro = seguroPorNumero(seguroNumero);
+
+      if (!seguro) {
+        mostrarAlerta("Selecciona un seguro válido.", "error");
+        return;
+      }
+
+      state.creandoTurno = true;
+      boton.disabled = true;
+      boton.textContent = "GENERANDO TURNO...";
+      limpiarAlerta();
+
+      try {
+        /*
+         * El ID autoincremental permite construir códigos únicos
+         * sin depender de una consulta previa al último turno.
+         * La numeración es global por ID, no reinicia por seguro.
+         */
+        const { data: nuevo, error: insertError } = await db
+          .from("turnos")
+          .insert({
+            seguro: seguro.nombre,
+            estado: "espera",
+            codigo_formateado: "PENDIENTE"
+          })
+          .select("id")
+          .single();
+
+        if (insertError) throw insertError;
+
+        const codigo = `${seguro.codigo}-${String(nuevo.id).padStart(3, "0")}`;
+
+        const { data: actualizado, error: updateError } = await db
+          .from("turnos")
+          .update({ codigo_formateado: codigo })
+          .eq("id", nuevo.id)
+          .eq("estado", "espera")
+          .select("id, seguro, estado, codigo_formateado")
+          .single();
+
+        if (updateError) {
+          /*
+           * No se borra el registro si falla esta actualización:
+           * el turno podría haberse creado y debe poder recuperarse.
+           */
+          throw updateError;
+        }
+
+        document.getElementById("resultadoTurno").innerHTML = `
+          <div class="ticket-result">
+            <div class="ticket-label">TU NÚMERO DE TURNO</div>
+            <div class="ticket-code">${escapeHTML(actualizado.codigo_formateado)}</div>
+            <strong>${escapeHTML(actualizado.seguro)}</strong>
+            <p>Estado: En espera</p>
+            <p>Dirígete a la ventanilla cuando tu número sea llamado.</p>
+          </div>
+        `;
+
+        mostrarAlerta("Tu turno fue generado correctamente.", "success");
+        boton.textContent = "TURNO GENERADO";
+
+      } catch (error) {
+        mostrarAlerta(formatearError(error), "error");
+        boton.disabled = false;
+        boton.textContent = "INTENTAR NUEVAMENTE";
+      } finally {
+        state.creandoTurno = false;
+      }
+    }
+
+    // =====================================================
+    // VISTA DE ASESORES
+    // =====================================================
+    function renderAsesor() {
+      app.className = "";
+
+      if (!state.asesorAutenticado) {
+        app.innerHTML = `
+          <section class="page-heading">
+            <div class="eyebrow">Acceso restringido</div>
+            <h2>Portal de asesores</h2>
+            <p>Ingresa tu clave para acceder a la gestión de turnos.</p>
+          </section>
+
+          <section class="card advisor-layout">
+            <form id="formLogin">
+              <div class="field">
+                <label class="field-label" for="claveAsesor">
+                  Clave de acceso
+                </label>
+                <input
+                  id="claveAsesor"
+                  type="password"
+                  inputmode="numeric"
+                  autocomplete="current-password"
+                  placeholder="Ingresa tu clave"
+                  required
+                >
+              </div>
+
+              <button class="btn btn-primary" type="submit">
+                INICIAR SESIÓN
+              </button>
+
+              <div id="alertas" aria-live="polite"></div>
+            </form>
+          </section>
+        `;
+
+        document.getElementById("formLogin")
+          .addEventListener("submit", event => {
+            event.preventDefault();
+
+            const clave = document.getElementById("claveAsesor").value;
+
+            if (clave === "1234") {
+              state.asesorAutenticado = true;
+              renderAsesor();
+            } else {
+              mostrarAlerta("Clave incorrecta. Inténtalo nuevamente.", "error");
+              document.getElementById("claveAsesor").value = "";
+              document.getElementById("claveAsesor").focus();
+            }
+          });
+
+        return;
+      }
+
+      app.innerHTML = `
+        <section class="page-heading">
+          <div class="eyebrow">Panel de atención</div>
+          <h2>Gestión de turnos</h2>
+          <p>Administra los clientes en espera de tu ventanilla.</p>
+        </section>
+
+        <section class="card advisor-layout">
+          <div class="status-row">
+            <span class="dot"></span>
+            <span>Sesión de asesor activa en este dispositivo</span>
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="seguroAsesor">
+              Selecciona tu ventanilla
+            </label>
+
+            <select id="seguroAsesor">
+              ${seguros.map(s => `
+                <option value="${s.numero}" ${s.numero === state.seguroAsesor ? "selected" : ""}>
+                  Ventanilla ${s.numero} — ${s.nombre}
+                </option>
+              `).join("")}
+            </select>
+          </div>
+
+          <div class="advisor-current">
+            <div class="section-label">Último turno llamado por este panel</div>
+            <div class="ticket-code" id="turnoActualAsesor">—</div>
+            <div id="nombreSeguroAsesor">${escapeHTML(seguroPorNumero(state.seguroAsesor).nombre)}</div>
+          </div>
+
+          <button class="btn btn-primary" id="btnLlamar">
+            LLAMAR SIGUIENTE TURNO
+          </button>
+
+          <div id="alertas" aria-live="polite"></div>
+
+          <div style="margin-top:14px">
+            <button class="btn btn-secondary" id="btnCerrarSesion">
+              CERRAR SESIÓN
+            </button>
+          </div>
+
+          <p class="helper">
+            Se atenderá al cliente más antiguo que continúe en espera
+            para el seguro seleccionado.
+          </p>
+        </section>
+      `;
+
+      document.getElementById("seguroAsesor").addEventListener("change", event => {
+        state.seguroAsesor = Number(event.target.value);
+        state.turnoAsesor = null;
+
+        document.getElementById("turnoActualAsesor").textContent = "—";
+        document.getElementById("nombreSeguroAsesor").textContent =
+          seguroPorNumero(state.seguroAsesor).nombre;
+
+        limpiarAlerta();
+      });
+
+      document.getElementById("btnLlamar")
+        .addEventListener("click", llamarSiguiente);
+
+      document.getElementById("btnCerrarSesion")
+        .addEventListener("click", () => {
+          state.asesorAutenticado = false;
+          state.turnoAsesor = null;
+          renderAsesor();
+        });
+    }
+
+    async function llamarSiguiente() {
+      if (!state.asesorAutenticado || state.llamandoTurno) return;
+
+      const boton = document.getElementById("btnLlamar");
+      const seguro = seguroPorNumero(state.seguroAsesor);
+
+      state.llamandoTurno = true;
+      boton.disabled = true;
+      boton.textContent = "BUSCANDO CLIENTE...";
+      limpiarAlerta();
+
+      try {
+        /*
+         * Selecciona el turno más antiguo.
+         * La condición estado='espera' en la actualización evita
+         * que dos asesores reclamen el mismo registro a la vez.
+         */
+        const { data: pendientes, error: selectError } = await db
+          .from("turnos")
+          .select("id, seguro, estado, codigo_formateado, created_at")
+          .eq("seguro", seguro.nombre)
+          .eq("estado", "espera")
+          .order("created_at", { ascending: true })
+          .order("id", { ascending: true })
+          .limit(1);
+
+        if (selectError) throw selectError;
+
+        if (!pendientes || pendientes.length === 0) {
+          mostrarAlerta(
+            `No hay clientes en espera para ${seguro.nombre}.`,
+            "info"
+          );
+          return;
+        }
+
+        const candidato = pendientes[0];
+
+        const { data: turno, error: updateError } = await db
+          .from("turnos")
+          .update({ estado: "atendiendo" })
+          .eq("id", candidato.id)
+          .eq("estado", "espera")
+          .select("id, seguro, estado, codigo_formateado")
+          .maybeSingle();
+
+        if (updateError) throw updateError;
+
+        if (!turno) {
+          mostrarAlerta(
+            "Otro asesor tomó este turno antes. Pulsa nuevamente para buscar el siguiente.",
+            "info"
+          );
+          return;
+        }
+
+        state.turnoAsesor = turno;
+
+        document.getElementById("turnoActualAsesor").textContent =
+          turno.codigo_formateado || "—";
+
+        mostrarAlerta(
+          `Turno ${turno.codigo_formateado} llamado correctamente.`,
+          "success"
+        );
+
+      } catch (error) {
+        mostrarAlerta(formatearError(error), "error");
+      } finally {
+        state.llamandoTurno = false;
+
+        const botonActual = document.getElementById("btnLlamar");
+        if (botonActual) {
+          botonActual.disabled = false;
+          botonActual.textContent = "LLAMAR SIGUIENTE TURNO";
+        }
+      }
+    }
+
+    // =====================================================
+    // VISTA DE PANTALLA GENERAL
+    // =====================================================
+    function renderPantalla() {
+      app.className = "screen-main";
+
+      app.innerHTML = `
+        <div class="screen-heading">
+          <div>
+            <div class="eyebrow">Atención en vivo</div>
+            <h2>Turnos en atención</h2>
+            <p>Feria Corporativa de Seguros</p>
+          </div>
+
+          <div class="screen-status">
+            <span class="dot offline" id="screenDot"></span>
+            <span id="screenStatusText">Conectando...</span>
+          </div>
+        </div>
+
+        <div id="errorPantalla" aria-live="polite"></div>
+
+        <section class="screen-grid" id="screenGrid">
+          ${seguros.map(s => `
+            <article class="counter-card" id="counter-${s.numero}">
+              <div class="counter-number">Ventanilla ${s.numero}</div>
+              <h3>${s.nombre}</h3>
+              <div class="counter-insurance">${s.nombre}</div>
+              <div class="counter-placeholder">---</div>
+              <div class="counter-state">Esperando atención</div>
+            </article>
+          `).join("")}
+        </section>
+      `;
+
+      iniciarPantallaRealtime();
+    }
+
+    function actualizarEstadoConexion(online, texto) {
+      state.screenOnline = online;
+
+      const dot = document.getElementById("screenDot");
+      const label = document.getElementById("screenStatusText");
+
+      if (dot) dot.classList.toggle("offline", !online);
+      if (label) label.textContent = texto;
+    }
+
+    function pintarTurno(numero, turno) {
+      const card = document.getElementById(`counter-${numero}`);
+      if (!card) return;
+
+      const seguro = seguroPorNumero(numero);
+
+      if (!turno) {
+        card.innerHTML = `
+          <div class="counter-number">Ventanilla ${numero}</div>
+          <h3>${escapeHTML(seguro.nombre)}</h3>
+          <div class="counter-insurance">${escapeHTML(seguro.nombre)}</div>
+          <div class="counter-placeholder">---</div>
+          <div class="counter-state">Esperando atención</div>
+        `;
+        return;
+      }
+
+      card.innerHTML = `
+        <div class="counter-number">Ventanilla ${numero}</div>
+        <h3>${escapeHTML(seguro.nombre)}</h3>
+        <div class="counter-insurance">${escapeHTML(turno.seguro)}</div>
+        <div class="counter-ticket">${escapeHTML(turno.codigo_formateado || "—")}</div>
+        <div class="counter-state">● EN ATENCIÓN</div>
+      `;
+    }
+
+    async function cargarTurnosActuales() {
+      if (state.route !== "pantalla") return;
+
+      try {
+        /*
+         * Cada ventanilla conserva el turno atendiendo más reciente.
+         * Si hay varios, se toma el registro de created_at más nuevo.
+         */
+        const { data, error } = await db
+          .from("turnos")
+          .select("id, seguro, estado, codigo_formateado, created_at")
+          .eq("estado", "atendiendo")
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: false })
+          .limit(500);
+
+        if (error) throw error;
+
+        const actuales = {};
+
+        for (const turno of (data || [])) {
+          const seguro = seguros.find(s => s.nombre === turno.seguro);
+          if (!seguro) continue;
+
+          if (!actuales[seguro.numero]) {
+            actuales[seguro.numero] = turno;
+          }
+        }
+
+        state.turnosActuales = actuales;
+
+        for (const seguro of seguros) {
+          pintarTurno(seguro.numero, actuales[seguro.numero] || null);
+        }
+
+        const errorBox = document.getElementById("errorPantalla");
+        if (errorBox) errorBox.innerHTML = "";
+
+      } catch (error) {
+        const errorBox = document.getElementById("errorPantalla");
+
+        if (errorBox) {
+          errorBox.innerHTML = `
+            <div class="alert error">
+              ${escapeHTML(formatearError(error))}
+            </div>
+          `;
+        }
+      }
+    }
+
+    function detenerCanal() {
+      if (state.canal) {
+        db.removeChannel(state.canal);
+        state.canal = null;
+      }
+    }
+
+    function iniciarPantallaRealtime() {
+      detenerCanal();
+
+      cargarTurnosActuales();
+
+      /*
+       * La tabla turnos debe tener habilitada la publicación
+       * de cambios para Supabase Realtime.
+       */
+      state.canal = db
+        .channel("turnos-realtime")
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "turnos"
+          },
+          () => {
+            // Recarga el estado consolidado tras cada evento.
+            cargarTurnosActuales();
+          }
+        )
+        .subscribe(status => {
+          if (state.route !== "pantalla") return;
+
+          if (status === "SUBSCRIBED") {
+            actualizarEstadoConexion(true, "En vivo");
+          } else if (
+            status === "CHANNEL_ERROR" ||
+            status === "TIMED_OUT" ||
+            status === "CLOSED"
+          ) {
+            actualizarEstadoConexion(false, "Reconectando...");
+          }
+        });
+    }
+
+    // =====================================================
+    // INICIO
+    // =====================================================
+    navegar();
+  </script>
+</body>
+</html>
